@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        id="de.flynetworks.websocketclient"
+        version="0.0.1">
+    <name>WebSocketClient</name>
+    <description>This plugin provides a custom websocket implemenation for javascript
+        supporting client side certificates.</description>
+    <license>MIT</license>
+    <keywords>websocket,client</keywords>
+    <repo></repo>
+    <issue></issue>
+
+    <js-module src="www/WebSocketClient.js" name="WebSocketClient">
+        <clobbers target="WebSocketClient" />
+    </js-module>
+
+    <!-- android -->
+    <platform name="android">
+        <config-file target="res/xml/config.xml" parent="/*">
+            <feature name="WebSocketClientController" >
+                <param name="android-package" value="WebSocketClientController"/>
+            </feature>
+        </config-file>
+        <source-file src="src/android/WebSocketClientFactory.java" target-dir="src/" />
+        <source-file src="src/android/WebSocketClientController.java" target-dir="src/" />
+        <source-file src="src/android/WebSocketClient.java" target-dir="src/" />
+        <source-file src="libs/java_websocket.jar" target-dir="libs" framework="true" />
+    </platform>
+
+</plugin>
