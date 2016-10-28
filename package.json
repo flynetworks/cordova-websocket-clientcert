@@ -1,0 +1,27 @@
+{
+  "name": "CordovaWebSocketClientCert",
+  "version": "0.0.1",
+  "description": "This plugin provides a custom websocket implemenation for javascript supporting client side certificates.",
+  "cordova": {
+    "id": "de.flynetworks.websocketclient",
+    "platforms": [
+      "android"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/flynetworks/cordova-websocket-clientcert.git"
+  },
+  "keywords": [
+    "websocket",
+    "client",
+    "ecosystem:cordova",
+    "cordova-android"
+  ],
+  "author": "Kay Schecker",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/flynetworks/cordova-websocket-clientcert/issues"
+  },
+  "homepage": "https://github.com/flynetworks/cordova-websocket-clientcert#readme"
+}
