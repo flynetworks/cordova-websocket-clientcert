@@ -15,7 +15,7 @@ function WebSocketClient(url, p12File, password) {
     this.onerror = nullFn;
     this.onmessage = nullFn;
 
-    this.connect(url, p12File, password);
+    setTimeout(this.connect.bind(this, url, p12File, password), 0);
 }
 
 WebSocketClient.prototype.connect = function (url, p12File, password) {
