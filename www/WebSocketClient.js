@@ -26,7 +26,7 @@ WebSocketClient.prototype.connect = function (url, p12File, password) {
         this.onConnectionFailed.bind(this),
         "WebSocketClientController",
         "connect",
-        [url, p12File ? "www/" + p12File : '', password]
+        [url, p12File ? p12File : '', password]
     );
 };
 

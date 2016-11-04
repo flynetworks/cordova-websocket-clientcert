@@ -5,6 +5,8 @@ import org.json.JSONException;
 
 import java.io.InputStream;
 import java.util.HashMap;
+import java.io.File;
+import java.io.FileInputStream;
 
 //import java.security.cert.CertificateException;
 public class WebSocketClientController extends CordovaPlugin {
@@ -49,7 +51,8 @@ public class WebSocketClientController extends CordovaPlugin {
         try {
             InputStream certFileStream = null;
             if (certFilePath.length() > 0) {
-                certFileStream = cordova.getActivity().getApplicationContext().getAssets().open(certFilePath);
+                File file = new File(certFilePath);
+                certFileStream = new FileInputStream(file);
             }
 
             WebSocketClient client = WebSocketClientFactory.createClient(url, certFileStream, certFilePassword);
