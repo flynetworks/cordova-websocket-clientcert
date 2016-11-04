@@ -1,6 +1,6 @@
 {
   "name": "CordovaWebSocketClientCert",
-  "version": "0.0.6",
+  "version": "0.0.3",
   "description": "This plugin provides a custom websocket implemenation for javascript supporting client side certificates.",
   "cordova": {
     "id": "de.flynetworks.websocketclient",
