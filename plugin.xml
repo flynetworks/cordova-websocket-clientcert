@@ -27,5 +27,14 @@
         <source-file src="src/android/WebSocketClient.java" target-dir="src/" />
         <source-file src="libs/java_websocket.jar" target-dir="libs" framework="true" />
     </platform>
-
+    <platform name="ios">
+        <config-file target="config.xml" parent="/*">
+            <feature name="WebSocketClientController">
+                <param name="ios-package" value="WebSocketClientController" />
+            </feature>
+        </config-file>
+        <header-file src="src/ios/WebSocketClientController.h" />
+        <source-file src="src/ios/WebSocketClientController.m" />
+        <framework src="jetfire" type="podspec" spec="~> 0.1" />
+    </platform>
 </plugin>

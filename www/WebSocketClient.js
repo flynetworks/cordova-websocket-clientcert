@@ -80,3 +80,5 @@ WebSocketClient.prototype.onMessage = function (json) {
 };
 
 module.exports = WebSocketClient;
+
+// new WebSocketClient('ws://192.168.0.17:9000');
