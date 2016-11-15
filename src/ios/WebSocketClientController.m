@@ -54,6 +54,7 @@
 
     // Create Configuration
     NSURLSessionConfiguration *sessionConfiguration = [NSURLSessionConfiguration defaultSessionConfiguration];
+    [sessionConfiguration setRequestCachePolicy:NSURLRequestReloadIgnoringLocalCacheData];
     [sessionConfiguration setURLCredentialStorage:credentialStore];
 
     // Create Session
@@ -74,7 +75,7 @@
 
     // Add Credential to Shared Credentials
     [credentialStore setDefaultCredential:credential forProtectionSpace:protectionSpace];
-    NSURLSessionDataTask *dataTask = [session dataTaskWithRequest:request];
+    NSURLSessionDownloadTask *dataTask = [session downloadTaskWithRequest:request];
     [dataTask resume];
 }
 
@@ -122,18 +123,6 @@
 
 - (void)createCredential {
     NSLog(@"[WSC][INFO] createCredential was called");
-
-
-//    SecPolicyRef policy = SecPolicyCreateBasicX509();
-//    const void *certs[] = {certificate};
-//    CFArrayRef certArray = CFArrayCreate(kCFAllocatorDefault, certs, 1, NULL);
-//
-//    OSStatus status;
-//    SecTrustRef trust;
-//    status = SecTrustCreateWithCertificates(certificate, policy, &trust);
-//    status = SecTrustSetAnchorCertificates(trust, certArray);
-//    SecTrustResultType trustResult;
-//    status = SecTrustEvaluate(trust, &trustResult);
 
     NSArray *chain = (__bridge NSArray *) identityChain;
     NSArray *slicedChain =@[chain.lastObject];
