@@ -4,276 +4,172 @@
 #import <Cordova/CDVPlugin.h>
 #import "JFRWebSocket.h"
 
-@implementation WebSocketClientController
+@interface WebSocketClientController ()
+- (void)loadPKCS12File;
 
-- (void) connect:(CDVInvokedUrlCommand*)command
-{
-//    self.socket = [[JFRWebSocket alloc] initWithURL:[NSURL URLWithString:@"wss://sandbox.kaazing.net/echo"] protocols:@[]];
-//    self.socket.delegate = self;
-//    [self.socket connect];
-    [self open];
+- (void)createCredential;
+@end
+
+@implementation WebSocketClientController {
+    NSURL *serverURL;
+    NSString *appFolderPath;
+    NSString *pkcs12Path;
+    NSString *password;
+
+    SecIdentityRef identityRef;
+    CFArrayRef identityChain;
+
+    NSOperationQueue *delegateQueue;
+    NSURLCredential *credential;
+    SecCertificateRef certificate;
 }
 
-- (void)open {
+- (void)connect:(CDVInvokedUrlCommand *)command {
+    NSLog(@"[WSC][INFO] Connect was called");
 
-//    NSURL *serverURL = [NSURL URLWithString: @"http://192.168.0.17:9000"];
+    serverURL = [NSURL URLWithString:@"https://192.168.5.121:8443/rico/index.html"];
+//    serverURL = [NSURL URLWithString:@"https://192.168.10.53:8443/rico/index.html"];
+    appFolderPath = [[NSBundle mainBundle] resourcePath];
+    pkcs12Path = [NSString stringWithFormat:@"%@/%@", appFolderPath, @"www/sma2client2.p12"];
+    password = @"aT7kyG";
 
-    NSMutableURLRequest *connectionRequest = [
-        NSMutableURLRequest requestWithURL:serverURL
-        cachePolicy:NSURLRequestReloadIgnoringCacheData timeoutInterval:60.0
-    ];
+    NSLog(@"[WSC][INFO] ServerURL:   %@", serverURL);
+    NSLog(@"[WSC][INFO] App-Folder:  %@", appFolderPath);
+    NSLog(@"[WSC][INFO] P12-File:    %@", pkcs12Path);
+    NSLog(@"[WSC][INFO] Password:    %@", password);
 
-    [[NSURLConnection alloc] initWithRequest:connectionRequest delegate:self];
-}
-
-/* NSURLConnection Delegate Methods */
-
-- (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response {
-    NSLog(@"in didReceiveResponse ");
-}
-
-- (void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data {
-    NSLog(@"in didReceiveData ");
-}
-
-- (BOOL)connection:(NSURLConnection *)connection canAuthenticateAgainstProtectionSpace:(NSURLProtectionSpace *)protectionSpace {
-    return YES;
-}
-
-- (void)connection:(NSURLConnection *)connection didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge {
-    NSLog(@"in didReceiveAuthenticationChallenge ");
-}
-
-- (void)connection:(NSURLConnection *)connection willSendRequestForAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge
-{
-    NSLog(@"in willSendRequestForAuthenticationChallenge ");
-    if([challenge.protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodServerTrust])
-    {
-        NSLog(@"Ignoring SSL");
-        SecTrustRef trust = challenge.protectionSpace.serverTrust;
-        NSURLCredential *cred;
-        cred = [NSURLCredential credentialForTrust:trust];
-        [challenge.sender useCredential:cred forAuthenticationChallenge:challenge];
+    NSURLRequest *request = [NSURLRequest requestWithURL:serverURL];
+    if (!request) {
+        NSLog(@"[WSC][ERR!] The request is empty!");
         return;
     }
 
-    if([challenge.protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodClientCertificate])
-    {
+    [self loadPKCS12File];
+    [self createCredential];
 
-        NSString *appFolderPath = [[NSBundle mainBundle] resourcePath];
-        NSString *certFile = [NSString stringWithFormat:@"%@/%@", appFolderPath, @"www/sma2client2.p12"];
+    NSURLCredentialStorage *credentialStore = [NSURLCredentialStorage sharedCredentialStorage];
 
+    delegateQueue = [[NSOperationQueue alloc] init];
+    delegateQueue.maxConcurrentOperationCount = 5;
 
-        NSString *thePath = certFile;
-        NSData *PKCS12Data = [[NSData alloc] initWithContentsOfFile:thePath];
-        CFDataRef inPKCS12Data = (__bridge CFDataRef)PKCS12Data;
-        SecIdentityRef identity;
-        [self extractIdentity :inPKCS12Data :&identity];
+    // Create Configuration
+    NSURLSessionConfiguration *sessionConfiguration = [NSURLSessionConfiguration defaultSessionConfiguration];
+    [sessionConfiguration setURLCredentialStorage:credentialStore];
 
-        SecCertificateRef certificate = NULL;
-        SecIdentityCopyCertificate (identity, &certificate);
+    // Create Session
+    NSURLSession *session = [NSURLSession sessionWithConfiguration:sessionConfiguration delegate:self delegateQueue:delegateQueue];
 
-        const void *certs[] = {certificate};
-        CFArrayRef certArray = CFArrayCreate(kCFAllocatorDefault, certs, 1, NULL);
+    // Create Credential
+    SecIdentityCopyCertificate(identityRef, &certificate);
+    const void *certs[] = {certificate};
+    CFArrayRef certsArray = CFArrayCreate(NULL, certs, 1, NULL);
 
-        NSURLCredential *credential = [NSURLCredential credentialWithIdentity:identity certificates:(__bridge NSArray*)certArray persistence:NSURLCredentialPersistencePermanent];
-        [challenge.sender useCredential:credential forAuthenticationChallenge:challenge];
-    }
-    // Provide your regular login credential if needed...
+    CFRelease(certsArray);
+
+    // Create Protection Space
+    NSString *host = [request.URL host];
+    NSInteger port = [[request.URL port] integerValue];
+    NSString *protocol = [request.URL scheme];
+    NSURLProtectionSpace *protectionSpace = [[NSURLProtectionSpace alloc] initWithHost:host port:port protocol:protocol realm:nil authenticationMethod:NSURLAuthenticationMethodClientCertificate];
+
+    // Add Credential to Shared Credentials
+    [credentialStore setDefaultCredential:credential forProtectionSpace:protectionSpace];
+    NSURLSessionDataTask *dataTask = [session dataTaskWithRequest:request];
+    [dataTask resume];
 }
 
-- (void)connectionDidFinishLoading:(NSURLConnection *)connection {
-    NSLog(@"in connectionDidFinishLoading ");
-}
+- (void)loadPKCS12File {
+    NSLog(@"[WSC][INFO] loadPKCS12File was called");
+    NSData *pkcs12data = [NSData dataWithContentsOfFile:pkcs12Path];
 
-- (void)connection:(NSURLConnection *)connection didFailWithError:(NSError *)error {
-    NSLog(@"in didFailWithError %@", error);
-}
-
-- (NSCachedURLResponse *)connection:(NSURLConnection *)connection willCacheResponse:(NSCachedURLResponse *)cachedResponse {
-    return nil;     // Never cache
-}
-
-- (OSStatus)extractIdentity:(CFDataRef)inP12Data :(SecIdentityRef*)identity {
-    OSStatus securityError = errSecSuccess;
-
-    CFStringRef password = CFSTR("PASSWORD");
-    const void *keys[] = { kSecImportExportPassphrase };
-    const void *values[] = { password };
-
-    CFDictionaryRef options = CFDictionaryCreate(NULL, keys, values, 1, NULL, NULL);
-
-    CFArrayRef items = CFArrayCreate(NULL, 0, 0, NULL);
-    securityError = SecPKCS12Import(inP12Data, options, &items);
-
-    if (securityError == 0) {
-        CFDictionaryRef ident = CFArrayGetValueAtIndex(items,0);
-        const void *tempIdentity = NULL;
-        tempIdentity = CFDictionaryGetValue(ident, kSecImportItemIdentity);
-        *identity = (SecIdentityRef)tempIdentity;
+    if (!pkcs12data) {
+        NSLog(@"[WSC][ ERR] Could not read pkcs#12 file <%@>", pkcs12Path);
+        return;
     }
 
-    if (options) {
-        CFRelease(options);
+    const void *keys[] = {kSecImportExportPassphrase};
+    const void *values[] = {(__bridge const void *) (password)};
+    CFDictionaryRef optionsDictionary = NULL;
+
+    optionsDictionary = CFDictionaryCreate(
+            NULL, keys,
+            values, (password ? 1 : 0),
+            NULL, NULL);
+
+    CFArrayRef results;
+    OSStatus err = SecPKCS12Import((__bridge CFDataRef) (pkcs12data), optionsDictionary, &results);
+    if (err != noErr) {
+        NSLog(@"[WSC][ ERR] Could not import pkcs#12 file <%@>", pkcs12Path);
+        return;
     }
 
-    return securityError;
+    if (CFArrayGetCount(results) > 1) {
+        NSLog(@"[WSC][ ERR] Too many entreis in the the pkcs#12 file, not smart enough. <%@>", pkcs12Path);
+        return;
+    }
+
+    CFDictionaryRef result = CFArrayGetValueAtIndex(results, 0);
+    identityRef = (SecIdentityRef) CFDictionaryGetValue(result, kSecImportItemIdentity);
+    CFRetain(identityRef);
+
+    identityChain = (CFArrayRef) CFDictionaryGetValue(result, kSecImportItemCertChain);
+
+    if (!identityRef) {
+        NSLog(@"[WSC][ ERR] No identity in the pkcs#12 file <%@>", pkcs12Path);
+        return;
+    }
 }
 
-/***********************************************************************************************************************
-- (void)connectObsolte:(CDVInvokedUrlCommand*)command
-{
-    CDVPluginResult* pluginResult = nil;
-    NSString* url = [command.arguments objectAtIndex:0];
-    NSString* certFilePath = [command.arguments objectAtIndex:1];
-    NSString* certFilePassword = [command.arguments objectAtIndex:2];
-
-    NSString *appFolderPath = [[NSBundle mainBundle] resourcePath];
-    NSString *certFile = [NSString stringWithFormat:@"%@/%@", appFolderPath, @"www/sma2client2.p12"];
-    NSString *certFilePublic = [NSString stringWithFormat:@"%@/%@", appFolderPath, @"www/sma2client2.crt"];
-
-    NSFileManager *fileManager = [NSFileManager defaultManager];
-
-    if ([fileManager fileExistsAtPath:certFile]){
-        NSLog(@"Certificate file was found: %@", certFile);
-
-        NSData *certData = [NSData dataWithContentsOfFile:certFile];
-//        SecCertificateRef cert = SecCertificateCreateWithData(NULL, (__bridge CFDataRef)certData);
-
-        NSData *PKCS12Data = [NSData dataWithContentsOfFile:certFile];
-        CFDataRef inPKCS12Data = (__bridge CFDataRef)PKCS12Data;
-        CFStringRef password = CFSTR("aT7kyG");
-
-        const void *keys[] = { kSecImportExportPassphrase };
-        const void *values[] = { password };
-
-        CFDictionaryRef optionsDictionary = CFDictionaryCreate(NULL, keys, values, 1, NULL, NULL);
-        CFArrayRef items = CFArrayCreate(NULL, 0, 0, NULL);
-        OSStatus securityError = SecPKCS12Import(inPKCS12Data, optionsDictionary, &items);
-        NSArray *keystore = (__bridge_transfer NSArray *)items;
-
-        if (securityError == 0) {
-            NSLog(@"Certificate file imported successfully ====== %@", certFile);
-
-            CFDictionaryRef myIdentityAndTrust = CFArrayGetValueAtIndex (items, 0);
-
-            const void *identity = NULL;
-
-            identity = CFDictionaryGetValue (myIdentityAndTrust, kSecImportItemIdentity);
-
-            SecCertificateRef cert = NULL;
-            SecIdentityCopyCertificate (identity, &cert);
-            if (cert != NULL) {
-                SecTrustRef trust = NULL;
-                SecPolicyRef policy = SecPolicyCreateBasicX509();
-//                SecPolicyRef policy = SecPolicyCreateSSL(true, CFSTR("SOMEHOST.COM"));
-
-                NSArray *myCerts = [[NSArray alloc] initWithObjects:(__bridge id) identity, (__bridge id) cert, nil];
-
-                if (policy) {
-                    if (SecTrustCreateWithCertificates(cert, policy, &trust) == noErr) {
-                        SecTrustResultType result;
-                        SecTrustEvaluate(trust, &result);
+- (void)createCredential {
+    NSLog(@"[WSC][INFO] createCredential was called");
 
 
-                        //Check the result of the trust evaluation rather than the result of the API invocation.
-//                        if (true || result == kSecTrustResultProceed || result == kSecTrustResultUnspecified) {
-                        SecKeyRef key = SecTrustCopyPublicKey(trust);
+//    SecPolicyRef policy = SecPolicyCreateBasicX509();
+//    const void *certs[] = {certificate};
+//    CFArrayRef certArray = CFArrayCreate(kCFAllocatorDefault, certs, 1, NULL);
+//
+//    OSStatus status;
+//    SecTrustRef trust;
+//    status = SecTrustCreateWithCertificates(certificate, policy, &trust);
+//    status = SecTrustSetAnchorCertificates(trust, certArray);
+//    SecTrustResultType trustResult;
+//    status = SecTrustEvaluate(trust, &trustResult);
 
-                        self.socket = [[JFRWebSocket alloc] initWithURL:[NSURL URLWithString:url] protocols:@[@"chat", @"superchat"]];
-                        self.socket.security = [[JFRSecurity alloc] initWithCerts:@[[[JFRSSLCert alloc] initWithKey:key]] publicKeys:YES];;
-                        self.socket.delegate = self;
-                        [self.socket connect];
-//                        } else {
-//                            NSLog(@"Trust failed ====== %@", SecTrustGetTrustResult(trust, result));
-//                        }
-                    }
-                }
-            }
+    NSArray *chain = (__bridge NSArray *) identityChain;
+    NSArray *slicedChain =@[chain.lastObject];
+
+    credential = [NSURLCredential credentialWithIdentity:identityRef
+                                            certificates:slicedChain
+                                             persistence:NSURLCredentialPersistenceForSession];
+
+    NSLog(@"[WSC][INFO] createCredential was called successfully");
+}
+
+- (void)URLSession:(NSURLSession *)session didBecomeInvalidWithError:(NSError *)error {
+    NSLog(@"[WSC][INFO] URLSession.didBecomeInvalidWithError was called");
+}
+
+- (void)URLSession:(NSURLSession *)session didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential *_Nullable credential))completionHandler {
+    NSLog(@"[WSC][INFO] URLSession.didReceiveChallenge was called (ProtectionSpace: %@)", challenge.protectionSpace.authenticationMethod);
+
+    if ([challenge.protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodClientCertificate]) {
+        if ([challenge previousFailureCount] == 0) {
+            NSLog(@"[WSC][INFO] URLSession.didReceiveChallenge previousFailureCount == 0");
+            completionHandler(NSURLSessionAuthChallengeUseCredential, credential);
         } else {
-            NSLog(@"Error while importing pkcs12 [%ld]", securityError);
+            NSLog(@"[WSC][INFO] URLSession.didReceiveChallenge previousFailureCount != 0");
+            completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, nil);
         }
-
-
-        //////////////
-
-
-
-        /////////////
-
-
-//        CFDataRef inPKCS12Data = (__bridge CFDataRef)PKCS12Data;
-//        CFStringRef password = CFSTR("aT7kyG");
-//
-//        const void *keys[] = { kSecImportExportPassphrase };
-//        const void *values[] = { password };
-//
-//        CFDictionaryRef optionsDictionary = CFDictionaryCreate(NULL, keys, values, 1, NULL, NULL);
-//        CFArrayRef items = CFArrayCreate(NULL, 0, 0, NULL);
-//        OSStatus securityError = SecPKCS12Import(inPKCS12Data, optionsDictionary, &items);
-//        NSArray *keystore = (__bridge_transfer NSArray *)items;
-
-//        if (securityError == 0) {
-//            NSLog(@"Certificate file imported successfully ====== %@", certFile);
-//
-//            CFDictionaryRef myIdentityAndTrust = CFArrayGetValueAtIndex (items, 0);
-//
-//            const void *tempTrust = NULL;
-//            const void *identity = NULL;
-//
-//            identity = CFDictionaryGetValue (myIdentityAndTrust, kSecImportItemIdentity);
-//
-//            SecCertificateRef certificate = NULL;
-//            SecIdentityCopyCertificate (identity, &certificate);
-//        }
-
-//        JFRSSLCert *cert = [[JFRSSLCert alloc] initWithData:PKCS12DataPublic];
-//        JFRSecurity *security = [[JFRSecurity alloc] initWithCerts:cert publicKeys:NO];
-//
-//        SecKeyRef
-//
-//        NSLog(@"EOS: %@", certFile);
-//
-//        self.socket = [[JFRWebSocket alloc] initWithURL:[NSURL URLWithString:url] protocols:@[@"chat",@"superchat"]];
-//        self.socket.security = security;
-//        self.socket.delegate = self;
-//        [self.socket connect];
     } else {
-        NSLog(@"Certificate file not found: %@", certFile);
+        NSLog(@"[WSC][INFO] URLSession.didReceiveChallenge Ignoring SSL");
+        SecTrustRef trust = challenge.protectionSpace.serverTrust;
+        completionHandler(NSURLSessionAuthChallengeUseCredential, [NSURLCredential credentialForTrust:trust]);
     }
-
-//
-//    NSError * error;
-//    NSArray * directoryContents =  [[NSFileManager defaultManager]
-//            contentsOfDirectoryAtPath:certFilePath error:&error];
-//
-//    NSLog(@"directoryContents ====== %@",directoryContents);
-
-
-    / *
-    self.socket.security = [[JFRSecurity alloc] initWithCerts:@[[[JFRSSLCert alloc] initWithData:p12data]] publicKeys:YES];
-    //    SecPKCS12Import()
-    self.socket.delegate = self;
-    [self.socket connect];
-    * /
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-}
-***********************************************************************************************************************/
-
--(void)websocketDidConnect:(JFRWebSocket*)socket {
-    NSLog(@"websocket is connected");
 }
 
--(void)websocketDidDisconnect:(JFRWebSocket*)socket error:(NSError*)error {
-    NSLog(@"websocket is disconnected: %@",[error localizedDescription]);
+- (void)URLSessionDidFinishEventsForBackgroundURLSession:(NSURLSession *)session {
+    NSLog(@"[WSC][INFO] URLSession.URLSessionDidFinishEventsForBackgroundURLSession was called");
 }
 
--(void)websocket:(JFRWebSocket*)socket didReceiveMessage:(NSString*)string {
-    NSLog(@"got some text: %@",string);
-}
-
--(void)websocket:(JFRWebSocket*)socket didReceiveData:(NSData*)data {
-    NSLog(@"got some binary data: %d",data.length);
-}
 
 @end
