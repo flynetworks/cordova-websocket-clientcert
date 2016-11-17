@@ -49,6 +49,22 @@ WebSocketClient.prototype.send = function (message, success, error) {
     );
 };
 
+WebSocketClient.prototype.close = function (message, success, error) {
+    if (this.readyState !== WebSocketClient.OPEN) {
+        throw "Unable to close websocket in readyState " + this.readyState;
+    }
+
+    var nullFn = function () {};
+
+    Cordova.exec(
+        (success || nullFn).bind(this),
+        (error || nullFn).bind(this),
+        "WebSocketClientController",
+        "close",
+        [this.resourceId]
+    );
+};
+
 WebSocketClient.prototype.onConnectionEvent = function (jsonStr) {
 
     var json = JSON.parse(jsonStr);

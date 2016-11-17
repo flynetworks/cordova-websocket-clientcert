@@ -15,7 +15,7 @@ public class WebSocketClientController extends CordovaPlugin {
     final HashMap<String, WebSocketClient> webSocketClients;
 
     private enum ACTION {
-        connect, send
+        connect, send, close
     }
 
     /**
@@ -39,6 +39,11 @@ public class WebSocketClientController extends CordovaPlugin {
                 return this.send(
                         arguments.getString(0),
                         arguments.getString(1),
+                        callbackContext
+                );
+            case close:
+                return this.close(
+                        arguments.getString(0),
                         callbackContext
                 );
             default:
@@ -70,11 +75,25 @@ public class WebSocketClientController extends CordovaPlugin {
 
         if (!webSocketClients.containsKey(resourceId)) {
             callbackContext.error("Unknown resourceId " + resourceId + " given!");
+            return false;
         } else {
             webSocketClients.get(resourceId).send(message);
             callbackContext.success();
+            return true;
         }
+    }
 
-        return true;
+    private boolean close(String resourceId, CallbackContext callbackContext) {
+        if (!webSocketClients.containsKey(resourceId)) {
+            callbackContext.error("Unknown resourceId " + resourceId + " given!");
+            return false;
+        } else {
+            WebSocketClient client = webSocketClients.get(resourceId);
+            client.close();
+
+            webSocketClients.remove(resourceId);
+            callbackContext.success();
+            return true;
+        }
     }
 }
