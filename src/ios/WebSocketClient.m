@@ -22,6 +22,10 @@
     [self.socket writeString:message];
 }
 
+- (void)close {
+    [self.socket disconnect];
+}
+
 - (void)websocketDidConnect:(JFRWebSocket *)socket {
     if([self.delegate respondsToSelector:@selector(clientDidConnect:client:)]) {
         [self.delegate clientDidConnect:self.uuid client:self];

@@ -35,6 +35,14 @@
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
+- (void)close:(CDVInvokedUrlCommand *)command {
+    WebSocketClient *client = self.clients[command.arguments[0]];
+    [client close];
+
+    CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+}
+
 - (void)clientDidConnect:(NSString *)uuid client:(WebSocketClient *)client {
     NSMutableDictionary *dict = [[NSMutableDictionary alloc]init];
     [dict setValue:@"onOpen" forKey:@"event"];

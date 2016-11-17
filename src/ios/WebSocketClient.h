@@ -57,4 +57,5 @@
 
 - (nonnull id)initWithURL:(nonnull NSURL *)url command:(CDVInvokedUrlCommand *)command pkcs12Path:(nullable NSString *)pkcs12Path password:(nullable NSString *)password;
 - (void)send:(nonnull NSString *)message;
+- (void)close;
 @end

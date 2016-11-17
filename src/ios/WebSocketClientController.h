@@ -9,5 +9,7 @@
 @property(nonatomic, strong) WebSocketClient *client;
 
 - (void)connect:(CDVInvokedUrlCommand *)command;
+- (void)send:(CDVInvokedUrlCommand *)command;
+- (void)close:(CDVInvokedUrlCommand *)command;
 
 @end
