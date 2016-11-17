@@ -33,8 +33,10 @@
                 <param name="ios-package" value="WebSocketClientController" />
             </feature>
         </config-file>
+        <header-file src="src/ios/WebSocketClient.h" />
+        <source-file src="src/ios/WebSocketClient.m" />
         <header-file src="src/ios/WebSocketClientController.h" />
         <source-file src="src/ios/WebSocketClientController.m" />
-        <framework src="jetfire" type="podspec" spec="~> 0.1" />
+        <framework src="flyfire" type="podspec" spec="~> 0.1" />
     </platform>
 </plugin>

@@ -1,5 +1,3 @@
-var exec = require('cordova/exec');
-
 ['CONNECTING', 'OPEN', 'CLOSED', 'CLOSING'].forEach(function (p) {
     WebSocketClient[p] = WebSocket[p];
 });
@@ -22,7 +20,7 @@ WebSocketClient.prototype.connect = function (url, p12File, password) {
     this.readyState = WebSocket.CONNECTING;
 
     Cordova.exec(
-        this.onMessage.bind(this),
+        this.onConnectionEvent.bind(this),
         this.onConnectionFailed.bind(this),
         "WebSocketClientController",
         "connect",
@@ -51,8 +49,9 @@ WebSocketClient.prototype.send = function (message, success, error) {
     );
 };
 
-WebSocketClient.prototype.onMessage = function (json) {
-    var json = JSON.parse(json);
+WebSocketClient.prototype.onConnectionEvent = function (jsonStr) {
+
+    var json = JSON.parse(jsonStr);
 
     switch (json.event) {
         case "onOpen":
@@ -80,5 +79,3 @@ WebSocketClient.prototype.onMessage = function (json) {
 };
 
 module.exports = WebSocketClient;
-
-// new WebSocketClient('ws://192.168.0.17:9000');

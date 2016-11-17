@@ -1,8 +1,13 @@
 #import <Cordova/CDVPlugin.h>
-#import "JFRWebSocket.h"
+#import "WebSocketClient.h"
 
-@interface WebSocketClientController : CDVPlugin <NSURLSessionDelegate>
+@class WebSocketClient;
 
-- (void)connect:(CDVInvokedUrlCommand*)command;
+@interface WebSocketClientController : CDVPlugin <WebSocketClientDelegate>
+
+@property(nonatomic, strong) NSMutableDictionary *clients;
+@property(nonatomic, strong) WebSocketClient *client;
+
+- (void)connect:(CDVInvokedUrlCommand *)command;
 
 @end
