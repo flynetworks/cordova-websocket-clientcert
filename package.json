@@ -5,7 +5,8 @@
   "cordova": {
     "id": "de.flynetworks.websocketclient",
     "platforms": [
-      "android"
+      "android",
+      "ios"
     ]
   },
   "repository": {

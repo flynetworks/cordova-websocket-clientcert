@@ -5,7 +5,7 @@ supporting client side PKCS12 certificates.
 
 ## Supported platforms
 * android
-* ios (coming soon)
+* ios
 
 ## Installation
 
