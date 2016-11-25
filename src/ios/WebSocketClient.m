@@ -8,6 +8,7 @@
     self.command = command;
     self.uuid = [[NSUUID UUID] UUIDString];
     self.socket = [[JFRWebSocket alloc] initWithURL:url protocols:NULL];
+    self.socket.selfSignedSSL = YES;
 
     if (pkcs12Path.length > 0) {
         [self.socket loadClientCertificate:pkcs12Path password:password];
