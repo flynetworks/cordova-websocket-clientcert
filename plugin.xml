@@ -2,7 +2,7 @@
 <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
         xmlns:android="http://schemas.android.com/apk/res/android"
         id="de.flynetworks.websocketclient"
-        version="0.0.9">
+        version="0.0.10">
     <name>WebSocketClient</name>
     <description>This plugin provides a custom websocket implemenation for javascript
         supporting client side certificates.</description>
